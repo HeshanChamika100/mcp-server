@@ -1,7 +1,7 @@
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 const { loadResume, queryResume } = require("./resumeParser");
@@ -10,14 +10,19 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
-// Start the server first
+// Brevo API setup
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+const apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY;
+
+const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
+
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
 
-// Load resume after server starts
 loadResume()
   .then(() => {
     console.log("Resume loaded successfully!");
@@ -27,38 +32,26 @@ loadResume()
     console.log("Server will continue running, but resume features may not work.");
   });
 
-// Chat endpoint
 app.post("/chat", (req, res) => {
   const { question } = req.body;
   const answer = queryResume(question);
   res.json({ answer });
 });
 
-// Email endpoint
 app.post("/send-email", async (req, res) => {
   const { recipient, subject, body } = req.body;
-
   try {
-    let transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = `<p>${body}</p>`;
+    sendSmtpEmail.sender = { name: "MCP Server", email: `${process.env.EMAIL_USER}` };
+    sendSmtpEmail.to = [{ email: recipient }];
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: recipient,
-      subject,
-      text: body,
-    });
-
+    const result = await emailApi.sendTransacEmail(sendSmtpEmail);
+    console.log('Email sent successfully:', result);
     res.json({ success: true, message: "Email sent!" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: "Failed to send email" });
+    console.error('Email sending error:', error);
+    res.status(500).json({ success: false, error: "Failed to send email: " + error.message });
   }
 });
-
-

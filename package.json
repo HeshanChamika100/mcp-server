@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,12 +12,14 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "nodemailer": "^7.0.6",
     "nodemon": "^3.1.10",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "sib-api-v3-sdk": "^8.5.0"
   }
 }
